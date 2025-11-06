@@ -1,2 +1,6 @@
+com\slopeoasis\user\Application.class
 com\slopeoasis\user\App.class
-com\slopeoasis\userservice\Application.class
+com\slopeoasis\user\repository\VrednostXRepo.class
+com\slopeoasis\user\controller\VrednostXCont.class
+com\slopeoasis\user\entity\VrednostX.class
+com\slopeoasis\user\service\VrednostXServ.class

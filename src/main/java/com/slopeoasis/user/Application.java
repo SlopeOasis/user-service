@@ -1,4 +1,4 @@
-package com.slopeoasis.userservice;
+package com.slopeoasis.user;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
