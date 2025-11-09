@@ -1,6 +1,15 @@
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\App.java
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\Application.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\clerk\ClerkUser.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\clerk\ClerkVerifier.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\clerk\HttpClerkVerifier.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\config\WebConfig.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\controller\UserCont.java
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\controller\VrednostXCont.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\entity\User.java
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\entity\VrednostX.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\repository\UserRepo.java
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\repository\VrednostXRepo.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\service\UserCreationResult.java
+C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\service\UserServ.java
 C:\Users\Uporabnuiki\Desktop\PRPO\Projekt\user\user-service\src\main\java\com\slopeoasis\user\service\VrednostXServ.java
