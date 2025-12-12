@@ -29,6 +29,16 @@ public class UserServ {
             }
             return new UserCreationResult(u, false);
         }
+        
+        // Check if wallet already exists for a different user
+        if (walletAddress != null && !walletAddress.isBlank()) {
+            Optional<User> existingWallet = userRepo.findByWalletAddress(walletAddress);
+            if (existingWallet.isPresent()) {
+                // Wallet exists - return existing user to avoid duplicate key violation
+                return new UserCreationResult(existingWallet.get(), false);
+            }
+        }
+        
         User u = new User(clerkId);
         if (walletAddress != null && !walletAddress.isBlank()) {
             u.setWalletAddress(walletAddress);
@@ -51,7 +61,7 @@ public class UserServ {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
         if (existing.isPresent()) {
             User u = existing.get();
-            return new String[]{u.getTheme1(), u.getTheme2(), u.getTheme3()};
+            return new String[]{u.getTheme1().name(), u.getTheme2().name(), u.getTheme3().name()};
         }
         return null;
     }
@@ -61,9 +71,9 @@ public class UserServ {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
         if (existing.isPresent()) {
             User u = existing.get();
-            u.setTheme1(theme1);
-            u.setTheme2(theme2);
-            u.setTheme3(theme3);
+            u.setTheme1((User.Tag)Enum.valueOf(User.Tag.class, theme1));
+            u.setTheme2((User.Tag)Enum.valueOf(User.Tag.class, theme2));
+            u.setTheme3((User.Tag)Enum.valueOf(User.Tag.class, theme3));
             userRepo.save(u);
         }
     }

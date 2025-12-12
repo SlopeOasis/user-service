@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.slopeoasis.user.clerk.ClerkUser;
@@ -117,51 +116,58 @@ public class UserCont {
         return ResponseEntity.ok(result.getUser());
     }
 
-    // GET /users/nickname?clerkId=...
+    // GET /users/nickname - returns nickname for authenticated user
     @GetMapping("/nickname")
-    public ResponseEntity<String> getNickname(@RequestParam String clerkId) {
-        String nickname = userServ.getNicknameByClerk(clerkId);
+    public ResponseEntity<String> getNickname(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
+        String nickname = userServ.getNicknameByClerk(userId);
         if (nickname == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(nickname);
     }
 
-    // GET /users/themes?clerkId=...
+    // GET /users/themes - returns themes for authenticated user
     @GetMapping("/themes")
-    public ResponseEntity<String[]> getThemes(@RequestParam String clerkId) {
-        String[] themes = userServ.getThemesByClerk(clerkId);
+    public ResponseEntity<String[]> getThemes(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
+        String[] themes = userServ.getThemesByClerk(userId);
         if (themes == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(themes);
     }
 
-    // POST /users/themes
+    // POST /users/themes - set themes for authenticated user
     @PostMapping("/themes")
-    public ResponseEntity<Void> setThemes(@RequestParam String clerkId, @RequestBody String[] themes) {
+    public ResponseEntity<Void> setThemes(@RequestBody String[] themes,
+                                          @org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
         if (themes == null || themes.length != 3) {
             return ResponseEntity.badRequest().build();
         }
-        userServ.setThemesByClerk(clerkId, themes[0], themes[1], themes[2]);
+        userServ.setThemesByClerk(userId, themes[0], themes[1], themes[2]);
         return ResponseEntity.ok().build();
     }
 
-    // POST /users/nickname
+    // POST /users/nickname - set nickname for authenticated user
     @PostMapping("/nickname")
-    public ResponseEntity<Void> setNickname(@RequestParam String clerkId, @RequestBody Map<String, String> body) {
+    public ResponseEntity<Void> setNickname(@RequestBody Map<String, String> body,
+                                            @org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
         String nickname = body.get("nickname");
         if (nickname == null || nickname.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        userServ.setNicknameByClerk(clerkId, nickname);
+        userServ.setNicknameByClerk(userId, nickname);
         return ResponseEntity.ok().build();
     }
 
-    // DELETE user by clerkId
+    // DELETE user - delete authenticated user
     @DeleteMapping
-    public ResponseEntity<Void> deleteUser(@RequestParam String clerkId) {
-        userServ.deleteUserByClerkId(clerkId);
+    public ResponseEntity<Void> deleteUser(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
+        userServ.deleteUserByClerkId(userId);
         return ResponseEntity.noContent().build();
     }
 }

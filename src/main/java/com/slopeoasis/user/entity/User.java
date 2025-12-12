@@ -3,6 +3,8 @@ package com.slopeoasis.user.entity;
 //to so anotacije
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,9 +21,12 @@ public class User {
     private String nickname = "";
     @Column(name = "wallet_address", unique = true, nullable = false)
     private String walletAddress = "";
-    private String theme1 = "";
-    private String theme2 = "";
-    private String theme3 = "";
+    @Enumerated(EnumType.STRING)
+    private Tag theme1;
+    @Enumerated(EnumType.STRING)
+    private Tag theme2;
+    @Enumerated(EnumType.STRING)
+    private Tag theme3;
     // JPA requires a no-arg constructor
     public User() {
     }
@@ -31,24 +36,24 @@ public class User {
     }
 
     //set themes function
-    public void setTheme1(String theme) {
+    public void setTheme1(Tag theme) {
         this.theme1 = theme;
     }
-    public void setTheme2(String theme) {
+    public void setTheme2(Tag theme) {
         this.theme2 = theme;
     }
-    public void setTheme3(String theme) {
+    public void setTheme3(Tag theme) {
         this.theme3 = theme;
     }
 
     //get themes functions
-    public String getTheme1() {
+    public Tag getTheme1() {
         return theme1;
     }
-    public String getTheme2() {
+    public Tag getTheme2() {
         return theme2;
     }
-    public String getTheme3() {
+    public Tag getTheme3() {
         return theme3;
     }
 
@@ -78,6 +83,19 @@ public class User {
     }
     public String getClerkId() {
         return clerkId;
+    }
+
+    // Predefined tags/themes (aligned with Posts.Tag)
+    public enum Tag {
+        ART,
+        MUSIC,
+        VIDEO,
+        CODE,
+        TEMPLATE,
+        PHOTO,
+        MODEL_3D,
+        FONT,
+        OTHER
     }
 
 }
