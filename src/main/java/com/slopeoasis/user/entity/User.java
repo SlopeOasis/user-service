@@ -19,8 +19,6 @@ public class User {
     @Column(name = "clerk_id", unique = true, nullable = false)
     private String clerkId = "";
     private String nickname = "";
-    @Column(name = "wallet_address", unique = true, nullable = false)
-    private String walletAddress = "";
     @Enumerated(EnumType.STRING)
     private Tag theme1;
     @Enumerated(EnumType.STRING)
@@ -65,16 +63,6 @@ public class User {
     //get nickname function
     public String getNickname() {
         return nickname;
-    }
-
-    //get wallet address function
-    public String getWalletAddress() {
-        return walletAddress;
-    }
-
-    // set wallet address (used when creating or updating a user)
-    public void setWalletAddress(String walletAddress) {
-        this.walletAddress = walletAddress;
     }
 
     //get id function

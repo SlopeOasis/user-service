@@ -1,46 +1,28 @@
 package com.slopeoasis.user.interceptor;
 
-import java.util.Base64;
-
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.slopeoasis.user.clerk.ClerkJwtVerifier;
+import com.slopeoasis.user.clerk.ClerkTokenPayload;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+// Uses Clerk verifier for proper JWT validation Sets X-User-Id (usid) and X-Wallet-Address in request attributes
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
 
-    @Value("${jwt.issuer:}")
-    private String issuer;
-    
-    @Value("${jwt.dev-mode:false}")
-    private boolean devMode;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ClerkJwtVerifier clerkJwtVerifier;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // In dev mode, we extract claims without signature verification for easier local testing
-        if (devMode) {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                // Dev mode: allow requests without auth (optional)
-                return true;
-            }
-            String token = authHeader.substring(7);
-            String userId = extractUserIdFromJwt(token);
-            if (userId != null) {
-                request.setAttribute("X-User-Id", userId);
-            }
+        // Skip OPTIONS requests (CORS preflight) - they don't have Authorization header
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
         
-        // Production mode: strict JWT validation with signature verification
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -50,43 +32,23 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         String token = authHeader.substring(7);
-        String userId = extractUserIdFromJwt(token);
-        if (userId == null) {
+        try {
+            ClerkTokenPayload payload = clerkJwtVerifier.verify(token);
+            
+            // Set user ID and wallet in request attributes for controllers to use
+            request.setAttribute("X-User-Id", payload.getUsid());
+            if (payload.getWallet() != null && !payload.getWallet().isBlank()) {
+                request.setAttribute("X-Wallet-Address", payload.getWallet());
+            }
+            
+            return true;
+        } catch (Exception e) {
+            System.err.println("JWT verification failed: " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Invalid JWT token\"}");
+            response.getWriter().write("{\"error\": \"Invalid or expired token\"}");
             return false;
-        }
-
-        // Store userId in request attribute for use in controller
-        request.setAttribute("X-User-Id", userId);
-        return true;
-    }
-
-    private String extractUserIdFromJwt(String token) {
-        try {
-            String[] parts = token.split("\\.");
-            if (parts.length != 3) return null;
-
-            // Decode payload (second part)
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-            JsonNode claims = objectMapper.readTree(payload);
-
-            // Extract 'sub' (subject/user ID) claim
-            JsonNode subClaim = claims.get("sub");
-            if (subClaim != null && !subClaim.asText().isEmpty()) {
-                return subClaim.asText();
-            }
-
-            // Fallback to 'user_id' if 'sub' is not present
-            JsonNode userIdClaim = claims.get("user_id");
-            if (userIdClaim != null && !userIdClaim.asText().isEmpty()) {
-                return userIdClaim.asText();
-            }
-
-            return null;
-        } catch (Exception e) {
-            return null;
         }
     }
 }
+

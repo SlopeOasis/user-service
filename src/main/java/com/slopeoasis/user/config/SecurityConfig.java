@@ -17,6 +17,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // JWT interceptor validates tokens in dev mode (extracts claims without signature verification)
         // and in production mode (strict signature validation)
+        // Exclude OPTIONS requests (CORS preflight) from JWT validation
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/users/**")
                 .excludePathPatterns("/users/public/**");

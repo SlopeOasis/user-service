@@ -16,33 +16,14 @@ public class UserServ {
     }
 
     // Return existing user with given clerkId or create and return a new one.
-    // Optionally set or update the walletAddress when creating/updating the record.
+    // Wallet is no longer stored in database (retrieved from Clerk on frontend).
     // Returns a UserCreationResult that indicates whether the user was created.
     public UserCreationResult createOrGetByClerkId(String clerkId, String walletAddress) {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
         if (existing.isPresent()) {
-            User u = existing.get();
-            // update wallet address if missing and provided
-            if ((u.getWalletAddress() == null || u.getWalletAddress().isBlank()) && walletAddress != null && !walletAddress.isBlank()) {
-                u.setWalletAddress(walletAddress);
-                userRepo.save(u);
-            }
-            return new UserCreationResult(u, false);
+            return new UserCreationResult(existing.get(), false);
         }
-        
-        // Check if wallet already exists for a different user
-        if (walletAddress != null && !walletAddress.isBlank()) {
-            Optional<User> existingWallet = userRepo.findByWalletAddress(walletAddress);
-            if (existingWallet.isPresent()) {
-                // Wallet exists - return existing user to avoid duplicate key violation
-                return new UserCreationResult(existingWallet.get(), false);
-            }
-        }
-        
         User u = new User(clerkId);
-        if (walletAddress != null && !walletAddress.isBlank()) {
-            u.setWalletAddress(walletAddress);
-        }
         User saved = userRepo.save(u);
         return new UserCreationResult(saved, true);
     }
@@ -61,7 +42,11 @@ public class UserServ {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
         if (existing.isPresent()) {
             User u = existing.get();
-            return new String[]{u.getTheme1().name(), u.getTheme2().name(), u.getTheme3().name()};
+            return new String[]{
+                u.getTheme1() != null ? u.getTheme1().name() : null,
+                u.getTheme2() != null ? u.getTheme2().name() : null,
+                u.getTheme3() != null ? u.getTheme3().name() : null
+            };
         }
         return null;
     }
@@ -71,10 +56,22 @@ public class UserServ {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
         if (existing.isPresent()) {
             User u = existing.get();
-            u.setTheme1((User.Tag)Enum.valueOf(User.Tag.class, theme1));
-            u.setTheme2((User.Tag)Enum.valueOf(User.Tag.class, theme2));
-            u.setTheme3((User.Tag)Enum.valueOf(User.Tag.class, theme3));
+            u.setTheme1(isValidTag(theme1) ? User.Tag.valueOf(theme1) : null);
+            u.setTheme2(isValidTag(theme2) ? User.Tag.valueOf(theme2) : null);
+            u.setTheme3(isValidTag(theme3) ? User.Tag.valueOf(theme3) : null);
             userRepo.save(u);
+        }
+    }
+
+    private boolean isValidTag(String tag) {
+        if (tag == null || tag.isBlank() || tag.equalsIgnoreCase("null")) {
+            return false;
+        }
+        try {
+            User.Tag.valueOf(tag);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
     
