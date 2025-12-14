@@ -1,88 +1,251 @@
-### opisi razdelkov znotraj "src/.../user/
+# User Service - Dokumentacija
 
-Application.java: glavni razred, ki zaganja Spring Boot aplikacijo
+## Pregled
+Mikroservis za upravljanje uporabniških profilov in nastavitev. Uporablja Clerk za JWT avtentikacijo in PostgreSQL za shranjevanje podatkov.
 
-Controller: sprejema HTTP klice
+## Tehnologije
+- **Spring Boot 3.3.0** - Java framework
+- **PostgreSQL 15** - baza podatkov (port 5432)
+- **Clerk JWT** - avtentikacija uporabnikov
+- **Maven** - upravljanje odvisnosti
 
-Service: izvaja logiko
+## Zagon
 
-Repository: dostopa do baze
+### Predpogoji
+1. Docker containers morajo biti zagnan (PostgreSQL):
+   ```bash
+   cd ../docker
+   docker-compose up -d
+   ```
 
-Entity: definira podatke, ki se shranjujejo
+2. Environment variables (nastavljene v `run-dev.bat`):
+   - `CLERK_ISSUER` - Clerk issuer URL
+   - `CLERK_JWKS_URL` - Clerk JWKS endpoint za preverjanje JWT
+   - `JWT_DEV_MODE` - false (za produkcijo) / true (za dev)
 
-### navodila za zagon
+### Lokalni razvoj
+```bash
+# Build projekta
 mvn clean package
 
+# Zagon z run-dev.bat (nastavi environment variables)
+.\run-dev.bat
 
+# Ali direktno Maven
 mvn spring-boot:run
-ali
-java -jar target/user-service-1.0-SNAPSHOT.jar
+```
 
-### dokumentacija
+Servis teče na **http://localhost:8080**
 
-Funkcionalnosti API-ja za upravljanje uporabnikov (endpoints):
+## Avtentikacija - Clerk JWT
 
-1) POST /users
-- Opis: Ustvari novega uporabnika ali vrne obstoječega glede na Clerk ID ali naslov denarnice.
-- Avtentikacija: Opcijsko Authorization header (Bearer <token>). Če je nastavljen in preverjanje Clerk deluje, bo uporabljen verificiran Clerk ID in naslov denarnice iz tokena. Če preverjanje ni omogočeno, je obvezen `clerkId` v telesu zahtevka.
-- Telo (primer, če ne uporabljate Authorization):
-	{
-		"clerkId": "user_123",
-		"walletAddress": "0xabc..."
-	}
-- Odgovori:
-	- 201 Created + Location header (ob uspešnem ustvarjanju)
-	- 200 OK (če uporabnik že obstaja)
-	- 400 Bad Request (če manjka clerkId/vrsta podatkov)
-	- 401 Unauthorized (če je Authorization posredovan, a verifikacija ne uspe)
+Večina endpointov zahteva **Bearer token** v Authorization headerju:
+```
+Authorization: Bearer <clerk-jwt-token>
+```
 
-2) GET /users/nickname?clerkId=<clerkId>
-- Opis: Vrne nickname (string) za uporabnika z danim Clerk ID.
-- Odgovori:
-	- 200 OK + telo: nickname (plain text)
-	- 404 Not Found (če nickname ne obstaja za podan Clerk ID)
+### Kako deluje JWT verifikacija
 
-3) POST /users/nickname?clerkId=<clerkId>
-- Opis: Nastavi ali posodobi nickname za podan Clerk ID.
-- Telo (JSON):
-	{ "nickname": "MojeIme" }
-- Odgovori:
-	- 200 OK (uspeh)
-	- 400 Bad Request (če je nickname prazen ali manjkajoči)
+1. **JwtInterceptor** prestrezne vse zahtevke na `/users/**` (razen public endpointov)
+2. **ClerkJwtVerifier**:
+   - Preveri JWT signature proti Clerk JWKS (RSA public keys)
+   - Validira issuer claim
+   - Ekstraktira `usid` (Clerk User ID) iz custom claims
+3. **Request attribute**: `X-User-Id` se nastavi z vrednostjo usid
+4. **Controller**: Dostopa do `X-User-Id` atributa
 
-4) GET /users/themes?clerkId=<clerkId>
-- Opis: Vrne array treh tem (string[]) za podan Clerk ID.
-- Odgovori:
-	- 200 OK + JSON array (npr. ["dark","blue","green"]) 
-	- 404 Not Found (če teme niso nastavljene)
+**Dev mode** (JWT_DEV_MODE=true):
+- Signature verifikacija **DISABLED** (samo za lokalni razvoj!)
+- V logih prikaže `[DEV MODE]` prefix
 
-5) POST /users/themes?clerkId=<clerkId>
-- Opis: Nastavi teme za uporabnika. Pričakuje točno 3 elemente v telesu zahtevka (string array).
-- Telo (primer):
-	["theme1","theme2","theme3"]
-- Odgovori:
-	- 200 OK (uspeh)
-	- 400 Bad Request (če ni natančno 3 teme)
+**Production mode** (JWT_DEV_MODE=false):
+- Signature verifikacija **ENABLED**
+- Zavrne invaliden token z 401
 
-6) DELETE /users?clerkId=<clerkId>
-- Opis: Izbriše uporabnika iz storitve po Clerk ID (v trenutni implementaciji izvede brisanje le v tej mikro storitvi, kasneje bo posredoval ukaze tudi drugim)
-- Odgovori:
-	- 204 No Content (uspešno izbrisano)
+## Struktura projekta
 
-Primeri curl klicev (hitri primeri):
+```
+src/main/java/com/slopeoasis/user/
+├── Application.java          # Main entry point
+├── clerk/
+│   ├── ClerkJwtVerifier.java    # JWT signature verifikacija
+│   └── ClerkTokenPayload.java   # DTO za JWT claims
+├── config/
+│   ├── SecurityConfig.java   # JwtInterceptor registracija
+│   └── WebConfig.java        # CORS konfiguracija
+├── controller/
+│   └── UserCont.java         # REST endpoints
+├── entity/
+│   └── User.java             # User entiteta
+├── interceptor/
+│   └── JwtInterceptor.java   # JWT validacija
+├── repository/
+│   └── UserRepo.java         # JPA repository
+└── service/
+    └── UserServ.java         # Business logika
+```
 
-- Ustvari ali pridobi uporabnika (brez tokena, pošiljanje clerkId v body):
+## Entiteta: User
 
-	curl -X POST http://localhost:8080/users -H "Content-Type: application/json" -d '{"clerkId":"user_123","walletAddress":"0xabc"}'
+**Polja:**
+- `id` (Long) - primarni ključ
+- `clerkId` (String) - Clerk User ID (unique)
+- `nickname` (String) - uporabniško ime (nullable)
+- `theme1`, `theme2`, `theme3` (Tag enum) - uporabnikovi interesi (nullable)
 
-- Nastavi nickname:
+**Tag enum:** ART, MUSIC, VIDEO, CODE, TEMPLATE, PHOTO, MODEL_3D, FONT, OTHER
 
-	curl -X POST "http://localhost:8080/users/nickname?clerkId=user_123" -H "Content-Type: application/json" -d '{"nickname":"MojeIme"}'
+**Opomba:** `walletAddress` je bil odstranjen - wallet se pridobi iz Clerk claims na frontendu.
 
-- Pridobi nickname:
+## REST API Endpoints
 
-	curl "http://localhost:8080/users/nickname?clerkId=user_123"
+### 🔒 Zaščiteni endpoints (zahtevajo JWT)
 
-- Nastavi teme:
+#### **POST /users**
+Ustvari ali pridobi uporabnika.
 
-	curl -X POST "http://localhost:8080/users/themes?clerkId=user_123" -H "Content-Type: application/json" -d '["theme1","theme2","theme3"]'
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Body:** Ni potreben (usid se ekstraktira iz JWT tokena)
+
+**Odgovor:**
+- 201 Created + Location header (ob ustvarjanju)
+- 200 OK (če uporabnik že obstaja)
+- 401 Unauthorized (neveljaven JWT)
+
+**Primer curl:**
+```bash
+curl -X POST http://localhost:8080/users \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+#### **GET /users/nickname**
+Pridobi nickname trenutnega uporabnika.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Odgovor:**
+- 200 OK + nickname (plain text)
+- 404 Not Found (če nickname ni nastavljen)
+
+**Primer:**
+```bash
+curl http://localhost:8080/users/nickname \
+  -H "Authorization: Bearer <jwt-token>"
+```
+
+#### **POST /users/nickname**
+Nastavi ali posodobi nickname.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Body (JSON):**
+```json
+{
+  "nickname": "MojeIme"
+}
+```
+
+**Odgovor:**
+- 200 OK
+- 400 Bad Request (prazen nickname)
+
+#### **GET /users/themes**
+Pridobi uporabnikove 3 interese/teme.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Odgovor:**
+```json
+["ART", "MUSIC", null]
+```
+*Opomba: Vrne array z 3 elementi, null če tema ni nastavljena*
+
+#### **POST /users/themes**
+Nastavi uporabnikove interese (točno 3 vrednosti).
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Body (JSON):**
+```json
+["ART", "MUSIC", "VIDEO"]
+```
+*Lahko vsebuje null vrednosti za prazne slote*
+
+**Odgovor:**
+- 200 OK
+- 400 Bad Request (ni točno 3 elemente ali neveljavne vrednosti)
+
+#### **DELETE /users**
+Izbriši uporabnika iz storitve.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Odgovor:**
+- 204 No Content
+- 401 Unauthorized
+
+## Service Layer (UserServ)
+
+**Glavne metode:**
+- `createOrGetUserByClerk(String clerkId)` - ustvari ali pridobi uporabnika
+- `getNicknameByClerk(String clerkId)` - pridobi nickname
+- `setNicknameByClerk(String clerkId, String nickname)` - nastavi nickname
+- `getThemesByClerk(String clerkId)` - pridobi 3 teme kot array
+- `setThemesByClerk(String clerkId, String[] themes)` - nastavi 3 teme
+- `deleteUserByClerk(String clerkId)` - izbriši uporabnika
+
+## Repository (UserRepo)
+
+**Metode:**
+- `findByClerkId(String clerkId)` - najdi uporabnika po Clerk ID
+- `deleteByClerkId(String clerkId)` - izbriši po Clerk ID
+
+## Testiranje
+
+```bash
+# Zagon testov
+mvn test
+
+# Build brez testov
+mvn clean package -DskipTests
+```
+
+## Troubleshooting
+
+### 401 Unauthorized
+- Preveri da je JWT token veljaven
+- Preveri CLERK_ISSUER in CLERK_JWKS_URL environment variables
+- Preveri da JWT_DEV_MODE=false v produkciji
+
+### Database connection failed
+- Preveri da Docker container user-db teče: `docker ps`
+- Preveri port 5432: `Test-NetConnection localhost -Port 5432`
+
+### CORS errors
+- Preveri da frontend teče na http://localhost:3000
+- Preveri WebConfig.java allowedOrigins
+
+## Dependencies
+
+**Pomembne Maven odvisnosti:**
+- `spring-boot-starter-web` - REST API
+- `spring-boot-starter-data-jpa` - Database access
+- `postgresql` - PostgreSQL driver
+- `com.clerk:backend-api:3.2.0` - Clerk SDK
+- `io.jsonwebtoken:jjwt-api:0.12.6` - JWT parsing/validation
+
+## Povezave z drugimi servisi
+
+- **Post Service** (port 8081) - uporablja user ID za seller/buyer identifikacijo
+- **Payment Service** (port 8082) - uporablja user ID za payment processing
+- **Frontend** (port 3000) - kliče user service za profile management
+
+## Varnost
+
+- JWT tokens so validirani z Clerk JWKS public keys
+- Občutljive operacije zahtevajo veljaven JWT
+- CORS je nastavljen samo za http://localhost:3000
+- Dev mode je **SAMO za razvoj** - v produkciji mora biti false
+
+*** End Patch
