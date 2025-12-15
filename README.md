@@ -150,6 +150,32 @@ Nastavi ali posodobi nickname.
 - 200 OK
 - 400 Bad Request (prazen nickname)
 
+#### **GET /users/public/{clerkId}**
+Javni endpoint (ne potrebuje JWT) za pridobitev prikaznega imena prodajalca.
+
+**Odgovor:**
+```json
+{
+  "nickname": "CreatorName" // lahko prazen, če ni nastavljen
+}
+```
+
+**Statusi:**
+- 200 OK + JSON telo
+- 404 Not Found (če uporabnik ne obstaja)
+
+#### **GET /users/public/by-nickname/{nickname}**
+Javni endpoint (ne potrebuje JWT) za pridobitev Clerk ID iz vzdevka (nickname).
+
+**Odgovor:**
+```
+"user_XXXXXXXXXXXX" // Clerk ID
+```
+
+**Statusi:**
+- 200 OK + Clerk ID (plain text)
+- 404 Not Found (če uporabnik ne obstaja)
+
 #### **GET /users/themes**
 Pridobi uporabnikove 3 interese/teme.
 
@@ -247,5 +273,3 @@ mvn clean package -DskipTests
 - Občutljive operacije zahtevajo veljaven JWT
 - CORS je nastavljen samo za http://localhost:3000
 - Dev mode je **SAMO za razvoj** - v produkciji mora biti false
-
-*** End Patch

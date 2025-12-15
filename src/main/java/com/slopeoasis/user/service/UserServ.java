@@ -28,6 +28,15 @@ public class UserServ {
         return new UserCreationResult(saved, true);
     }
 
+    public PublicProfile getPublicProfileByClerkId(String clerkId) {
+        Optional<User> existing = userRepo.findByClerkId(clerkId);
+        if (existing.isPresent()) {
+            User u = existing.get();
+            return new PublicProfile(u.getNickname());
+        }
+        return null;
+    }
+
     //get nickname by clerkId
     public String getNicknameByClerk(String clerkId) {
         Optional<User> existing = userRepo.findByClerkId(clerkId);
@@ -35,6 +44,12 @@ public class UserServ {
             return existing.get().getNickname();
         }
         return null;
+    }
+
+    public String getClerkIdByNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) return null;
+        Optional<User> existing = userRepo.findByNickname(nickname);
+        return existing.map(User::getClerkId).orElse(null);
     }
 
     //get themes by clerkId
@@ -92,4 +107,6 @@ public class UserServ {
             userRepo.delete(existing.get());
         }
     }
+
+    public record PublicProfile(String nickname) { }
 }

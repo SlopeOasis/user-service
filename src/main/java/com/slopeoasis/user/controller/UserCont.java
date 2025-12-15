@@ -30,6 +30,16 @@ public class UserCont {
         this.userServ = userServ;
     }
 
+    // Public endpoint to expose nickname for a given Clerk user
+    @GetMapping("/public/{clerkId}")
+    public ResponseEntity<UserServ.PublicProfile> getPublicProfile(@org.springframework.web.bind.annotation.PathVariable String clerkId) {
+        UserServ.PublicProfile profile = userServ.getPublicProfileByClerkId(clerkId);
+        if (profile == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(profile);
+    }
+
     // Create or return existing user using clerkId from JWT
     // Authorization: Bearer <Clerk JWT Token>. The token will be verified by JwtInterceptor
     // and extracted usid will be available as request attribute.

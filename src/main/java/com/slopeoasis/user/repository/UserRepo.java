@@ -8,4 +8,5 @@ import com.slopeoasis.user.entity.User;
 
 public interface UserRepo extends JpaRepository<User, Integer> {
     Optional<User> findByClerkId(String clerkId);
+    Optional<User> findByNickname(String nickname);
 }
