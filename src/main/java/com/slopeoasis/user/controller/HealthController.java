@@ -14,6 +14,6 @@ public class HealthController {
     
     @GetMapping
     public ResponseEntity<String> health() {
-        return ResponseEntity.ok("Backend is running!");
+        return ResponseEntity.ok("User-service backend is running!");
     }
 }

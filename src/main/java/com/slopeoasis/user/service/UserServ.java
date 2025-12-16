@@ -6,13 +6,16 @@ import org.springframework.stereotype.Service;
 
 import com.slopeoasis.user.entity.User;
 import com.slopeoasis.user.repository.UserRepo;
+import com.slopeoasis.user.web3j.WalletSignatureVerifier;
 
 @Service
 public class UserServ {
     private final UserRepo userRepo;
+    private final WalletSignatureVerifier walletSignatureVerifier;
 
     public UserServ(UserRepo userRepo) {
         this.userRepo = userRepo;
+        this.walletSignatureVerifier = new WalletSignatureVerifier();
     }
 
     // Return existing user with given clerkId or create and return a new one.
@@ -107,6 +110,40 @@ public class UserServ {
             userRepo.delete(existing.get());
         }
     }
+
+    public void verifyPolygonWallet(String clerkId,  String walletAddress, String message, String signature) {
+        User user = userRepo.findByClerkId(clerkId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        boolean valid = walletSignatureVerifier.verify(message, signature, walletAddress);
+
+        if (!valid) {
+            throw new IllegalArgumentException("Wallet ownership verification failed");
+        }
+
+        user.setPolygonWalletAddress(walletAddress);
+        user.setPolygonWalletVerified(true);
+        userRepo.save(user);
+    }
+
+    public Boolean getPolygonWalletStatus(String clerkId) {
+        Optional<User> existing = userRepo.findByClerkId(clerkId);
+        if (existing.isPresent()) {
+            User u = existing.get();
+            return u.getPolygonWalletVerified();
+        }
+        return null;
+    }
+
+    public String getPublicPolygonWalletAddress(String clerkId) {
+        Optional<User> existing = userRepo.findByClerkId(clerkId);
+        if (existing.isPresent()) {
+            User u = existing.get();
+            return u.getPolygonWalletAddress();
+        }
+        return null;
+    }
+
 
     public record PublicProfile(String nickname) { }
 }

@@ -78,6 +78,18 @@
       <version>0.12.6</version>
       <scope>runtime</scope>
     </dependency>
+
+    <!-- Web3j for Ethereum interaction -->
+    <dependency>
+      <groupId>org.web3j</groupId>
+      <artifactId>crypto</artifactId>
+      <version>4.10.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.web3j</groupId>
+      <artifactId>utils</artifactId>
+      <version>4.10.3</version>
+    </dependency>
   </dependencies>
 
   <!-- build za executable jar-->

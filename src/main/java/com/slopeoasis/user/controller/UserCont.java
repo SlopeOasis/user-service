@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.slopeoasis.user.entity.User;
 import com.slopeoasis.user.service.UserCreationResult;
@@ -32,7 +35,7 @@ public class UserCont {
 
     // Public endpoint to expose nickname for a given Clerk user
     @GetMapping("/public/{clerkId}")
-    public ResponseEntity<UserServ.PublicProfile> getPublicProfile(@org.springframework.web.bind.annotation.PathVariable String clerkId) {
+    public ResponseEntity<UserServ.PublicProfile> getPublicProfile(@PathVariable String clerkId) {
         UserServ.PublicProfile profile = userServ.getPublicProfileByClerkId(clerkId);
         if (profile == null) {
             return ResponseEntity.notFound().build();
@@ -42,7 +45,7 @@ public class UserCont {
 
     // Public endpoint to resolve nickname to Clerk ID
     @GetMapping("/public/by-nickname/{nickname}")
-    public ResponseEntity<String> getClerkIdByNickname(@org.springframework.web.bind.annotation.PathVariable String nickname) {
+    public ResponseEntity<String> getClerkIdByNickname(@PathVariable String nickname) {
         String clerkId = userServ.getClerkIdByNickname(nickname);
         if (clerkId == null) {
             return ResponseEntity.notFound().build();
@@ -55,7 +58,7 @@ public class UserCont {
     // and extracted usid will be available as request attribute.
     // Wallet is now retrieved directly from Clerk on frontend, not stored in database.
     @PostMapping
-    public ResponseEntity<User> createOrGetUser(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String usid) {
+    public ResponseEntity<User> createOrGetUser(@RequestAttribute(name = "X-User-Id", required = false) String usid) {
         if (usid == null || usid.isBlank()) {
             return ResponseEntity.status(401).build();
         }
@@ -72,7 +75,7 @@ public class UserCont {
 
     // GET /users/nickname - returns nickname for authenticated user
     @GetMapping("/nickname")
-    public ResponseEntity<String> getNickname(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<String> getNickname(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         String nickname = userServ.getNicknameByClerk(userId);
         if (nickname == null) {
@@ -83,7 +86,7 @@ public class UserCont {
 
     // GET /users/themes - returns themes for authenticated user
     @GetMapping("/themes")
-    public ResponseEntity<String[]> getThemes(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<String[]> getThemes(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         String[] themes = userServ.getThemesByClerk(userId);
         if (themes == null) {
@@ -95,7 +98,7 @@ public class UserCont {
     // POST /users/themes - set themes for authenticated user
     @PostMapping("/themes")
     public ResponseEntity<Void> setThemes(@RequestBody String[] themes,
-                                          @org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+                                          @RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         if (themes == null || themes.length != 3) {
             return ResponseEntity.badRequest().build();
@@ -107,7 +110,7 @@ public class UserCont {
     // POST /users/nickname - set nickname for authenticated user
     @PostMapping("/nickname")
     public ResponseEntity<Void> setNickname(@RequestBody Map<String, String> body,
-                                            @org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+                                            @RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         String nickname = body.get("nickname");
         if (nickname == null || nickname.isBlank()) {
@@ -119,9 +122,47 @@ public class UserCont {
 
     // DELETE user - delete authenticated user
     @DeleteMapping
-    public ResponseEntity<Void> deleteUser(@org.springframework.web.bind.annotation.RequestAttribute(name = "X-User-Id", required = false) String userId) {
+    public ResponseEntity<Void> deleteUser(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         userServ.deleteUserByClerkId(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    //POST /users/verify-wallet - verify wallet for authenticated user
+    @PostMapping("/pol-verify-wallet")
+    public ResponseEntity<Void> verifyPolygonWallet(@RequestBody Map<String, String> body, @RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
+        String walletAddress = body.get("walletAddress");
+        String message = body.get("message");
+        String signature = body.get("signature");
+        if (walletAddress == null || message == null || signature == null ||
+            walletAddress.isBlank() || message.isBlank() || signature.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            userServ.verifyPolygonWallet(userId, walletAddress, message, signature);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(404).build();
+        }
+    }
+
+    @GetMapping("/pol-wallet-status")
+    public ResponseEntity<Boolean> getPolygonWalletStatus(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
+        if (userId == null) return ResponseEntity.status(401).build();
+        Boolean status = userServ.getPolygonWalletStatus(userId);
+        if (status == null) {
+            return ResponseEntity.status(404).build();
+        }
+        return ResponseEntity.ok(status);
+    }
+
+    @GetMapping("/public/pol-wallet-addres")
+    public ResponseEntity<String> getPublicPolygonWalletAddress(@RequestParam String clerkId) {
+        String walletAddress = userServ.getPublicPolygonWalletAddress(clerkId);
+        if (walletAddress == null) {
+            return ResponseEntity.status(404).build();
+        }
+        return ResponseEntity.ok(walletAddress);
     }
 }

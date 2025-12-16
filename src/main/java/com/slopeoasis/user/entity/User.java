@@ -25,6 +25,9 @@ public class User {
     private Tag theme2;
     @Enumerated(EnumType.STRING)
     private Tag theme3;
+
+    private String polygonWalletAddress = "";
+    private Boolean polygonWalletVerified = false;
     // JPA requires a no-arg constructor
     public User() {
     }
@@ -71,6 +74,21 @@ public class User {
     }
     public String getClerkId() {
         return clerkId;
+    }
+
+    //wallet stuff get, set
+    public String getPolygonWalletAddress() {
+            return polygonWalletAddress;
+    }
+    public Boolean getPolygonWalletVerified() {
+        return polygonWalletVerified;
+    }
+
+    public void setPolygonWalletAddress(String polygonWalletAddress) {
+        this.polygonWalletAddress = polygonWalletAddress;
+    }
+    public void setPolygonWalletVerified(Boolean polygonWalletVerified) {
+        this.polygonWalletVerified = polygonWalletVerified;
     }
 
     // Predefined tags/themes (aligned with Posts.Tag)
