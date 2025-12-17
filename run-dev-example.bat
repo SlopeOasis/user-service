@@ -1,0 +1,6 @@
+@echo off
+set SERVER_PORT=8080
+set CLERK_ISSUER=CLERK_ISSUER
+set CLERK_JWKS_URL=CLERK_JWKS_URL
+set JWT_DEV_MODE=false
+mvn spring-boot:run
