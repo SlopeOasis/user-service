@@ -1,7 +1,7 @@
 # User Service - Dokumentacija
 
 ## Pregled
-Mikroservis za upravljanje uporabniških profilov in nastavitev. Uporablja Clerk za JWT avtentikacijo in PostgreSQL za shranjevanje podatkov.
+Microservis za upravljanje uporabniških profilov (nickname, teme/interesi) in Polygon wallet verifikacije. Uporablja Clerk za JWT avtentikacijo in PostgreSQL za shranjevanje podatkov.
 
 ## Tehnologije
 - **Spring Boot 3.3.0** - Java framework
@@ -22,6 +22,7 @@ Mikroservis za upravljanje uporabniških profilov in nastavitev. Uporablja Clerk
    - `CLERK_ISSUER` - Clerk issuer URL
    - `CLERK_JWKS_URL` - Clerk JWKS endpoint za preverjanje JWT
    - `JWT_DEV_MODE` - false (za produkcijo) / true (za dev)
+  - `CORS_ALLOWED_ORIGIN` - dovoljen origin za frontend (privzeto `http://localhost:3000`)
 
 ### Lokalni razvoj
 ```bash
@@ -92,10 +93,12 @@ src/main/java/com/slopeoasis/user/
 - `clerkId` (String) - Clerk User ID (unique)
 - `nickname` (String) - uporabniško ime (nullable)
 - `theme1`, `theme2`, `theme3` (Tag enum) - uporabnikovi interesi (nullable)
+- `polygonWalletAddress` (String) - Polygon wallet naslov
+- `polygonWalletVerified` (Boolean) - ali je wallet verificiran
 
 **Tag enum:** ART, MUSIC, VIDEO, CODE, TEMPLATE, PHOTO, MODEL_3D, FONT, OTHER
 
-**Opomba:** `walletAddress` je bil odstranjen - wallet se pridobi iz Clerk claims na frontendu.
+**Opomba:** Polygon wallet se uporablja za payment flow (nakup/verifikacija) in se verificira preko spodnjih endpointov.
 
 ## REST API Endpoints
 
@@ -176,6 +179,18 @@ Javni endpoint (ne potrebuje JWT) za pridobitev Clerk ID iz vzdevka (nickname).
 - 200 OK + Clerk ID (plain text)
 - 404 Not Found (če uporabnik ne obstaja)
 
+#### **GET /users/public/pol-wallet-addres?clerkId=...**
+Javni endpoint (ne potrebuje JWT) za pridobitev Polygon wallet naslova za podan Clerk ID.
+
+**Odgovor:**
+```text
+0x...
+```
+
+**Statusi:**
+- 200 OK (plain text)
+- 404 Not Found
+
 #### **GET /users/themes**
 Pridobi uporabnikove 3 interese/teme.
 
@@ -210,6 +225,38 @@ Izbriši uporabnika iz storitve.
 **Odgovor:**
 - 204 No Content
 - 401 Unauthorized
+
+#### **POST /users/pol-verify-wallet**
+Verificira Polygon wallet (ownership verification) za trenutno prijavljenega uporabnika.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Body (JSON):**
+```json
+{
+  "walletAddress": "0x...",
+  "message": "...",
+  "signature": "0x..."
+}
+```
+
+**Statusi:**
+- 200 OK
+- 400 Bad Request
+- 401 Unauthorized
+- 404 Not Found (user ne obstaja)
+
+#### **GET /users/pol-wallet-status**
+Vrne ali je Polygon wallet verificiran za trenutnega uporabnika.
+
+**Headers:** `Authorization: Bearer <jwt-token>`
+
+**Odgovor:**
+```json
+true
+```
+
+**Statusi:** 200 OK / 401 / 404
 
 ## Service Layer (UserServ)
 
