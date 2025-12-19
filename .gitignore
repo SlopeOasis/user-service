@@ -1,3 +1,4 @@
 target/
 .env
 run-dev.bat
+k8s/*-secrets.yaml

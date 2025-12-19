@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-service-config
+data:
+  SERVER_PORT: "8080"
+  # Clerk JWT
+  CLERK_ISSUER: "https://upright-bird-25.clerk.accounts.dev"
+  CLERK_JWKS_URL: "https://upright-bird-25.clerk.accounts.dev/.well-known/jwks.json"
+  JWT_DEV_MODE: "false"
