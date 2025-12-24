@@ -19,12 +19,33 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://user-db:5432/userdb
-            - name: SPRING_DATASOURCE_USERNAME
-              value: user
-            - name: SPRING_DATASOURCE_PASSWORD
-              value: password
+              - name: SPRING_DATASOURCE_URL
+                value: jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE)?sslmode=require
+              - name: SPRING_DATASOURCE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: user-db-secret
+                    key: PGUSER
+              - name: SPRING_DATASOURCE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: user-db-secret
+                    key: PGPASSWORD
+              - name: PGHOST
+                valueFrom:
+                  secretKeyRef:
+                    name: user-db-secret
+                    key: PGHOST
+              - name: PGPORT
+                valueFrom:
+                  secretKeyRef:
+                    name: user-db-secret
+                    key: PGPORT
+              - name: PGDATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: user-db-secret
+                    key: PGDATABASE
           envFrom:
             - configMapRef:
                 name: user-service-config
