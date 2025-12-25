@@ -5,6 +5,9 @@ metadata:
 data:
   SERVER_PORT: "8080"
   # Clerk JWT
+  #dodano
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://userdatabase.postgres.database.azure.com:5432/userdb?sslmode=require"
+  
   CLERK_ISSUER: "https://upright-bird-25.clerk.accounts.dev"
   CLERK_JWKS_URL: "https://upright-bird-25.clerk.accounts.dev/.well-known/jwks.json"
   JWT_DEV_MODE: "false"

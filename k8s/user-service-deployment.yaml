@@ -12,15 +12,15 @@ spec:
       labels:
         app: user-service
     spec:
+      imagePullSecrets:
+        - name: acr-auth
       containers:
         - name: user-service
-          image: user-service:latest
-          imagePullPolicy: IfNotPresent
+          image: slopeoasisacr.azurecr.io/user-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
-              - name: SPRING_DATASOURCE_URL
-                value: jdbc:postgresql://$(PGHOST):$(PGPORT)/$(PGDATABASE)?sslmode=require
               - name: SPRING_DATASOURCE_USERNAME
                 valueFrom:
                   secretKeyRef:
