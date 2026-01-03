@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import com.slopeoasis.user.entity.User;
 import com.slopeoasis.user.service.UserCreationResult;
 import com.slopeoasis.user.service.UserServ;
@@ -34,6 +38,11 @@ public class UserCont {
     }
 
     // Public endpoint to expose nickname for a given Clerk user
+    @Operation(summary = "Get public profile by Clerk ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/public/{clerkId}")
     public ResponseEntity<UserServ.PublicProfile> getPublicProfile(@PathVariable String clerkId) {
         UserServ.PublicProfile profile = userServ.getPublicProfileByClerkId(clerkId);
@@ -44,6 +53,11 @@ public class UserCont {
     }
 
     // Public endpoint to resolve nickname to Clerk ID
+    @Operation(summary = "Get Clerk ID by nickname")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/public/by-nickname/{nickname}")
     public ResponseEntity<String> getClerkIdByNickname(@PathVariable String nickname) {
         String clerkId = userServ.getClerkIdByNickname(nickname);
@@ -57,6 +71,12 @@ public class UserCont {
     // Authorization: Bearer <Clerk JWT Token>. The token will be verified by JwtInterceptor
     // and extracted usid will be available as request attribute.
     // Wallet is now retrieved directly from Clerk on frontend, not stored in database.
+    @Operation(summary = "Create or get user")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "User created"),
+        @ApiResponse(responseCode = "200", description = "User exists"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError")
+    })
     @PostMapping
     public ResponseEntity<User> createOrGetUser(@RequestAttribute(name = "X-User-Id", required = false) String usid) {
         if (usid == null || usid.isBlank()) {
@@ -74,6 +94,12 @@ public class UserCont {
     }
 
     // GET /users/nickname - returns nickname for authenticated user
+    @Operation(summary = "Get nickname")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/nickname")
     public ResponseEntity<String> getNickname(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -85,6 +111,12 @@ public class UserCont {
     }
 
     // GET /users/themes - returns themes for authenticated user
+    @Operation(summary = "Get themes")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/themes")
     public ResponseEntity<String[]> getThemes(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -96,6 +128,12 @@ public class UserCont {
     }
 
     // POST /users/themes - set themes for authenticated user
+    @Operation(summary = "Set themes")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError")
+    })
     @PostMapping("/themes")
     public ResponseEntity<Void> setThemes(@RequestBody String[] themes,
                                           @RequestAttribute(name = "X-User-Id", required = false) String userId) {
@@ -108,6 +146,12 @@ public class UserCont {
     }
 
     // POST /users/nickname - set nickname for authenticated user
+    @Operation(summary = "Set nickname")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError")
+    })
     @PostMapping("/nickname")
     public ResponseEntity<Void> setNickname(@RequestBody Map<String, String> body,
                                             @RequestAttribute(name = "X-User-Id", required = false) String userId) {
@@ -121,6 +165,11 @@ public class UserCont {
     }
 
     // DELETE user - delete authenticated user
+    @Operation(summary = "Delete user")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "User deleted"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError")
+    })
     @DeleteMapping
     public ResponseEntity<Void> deleteUser(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -129,6 +178,13 @@ public class UserCont {
     }
 
     //POST /users/verify-wallet - verify wallet for authenticated user
+    @Operation(summary = "Verify Polygon wallet")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Wallet verified"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @PostMapping("/pol-verify-wallet")
     public ResponseEntity<Void> verifyPolygonWallet(@RequestBody Map<String, String> body, @RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -147,6 +203,12 @@ public class UserCont {
         }
     }
 
+    @Operation(summary = "Get Polygon wallet verification status")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "401", ref = "#/components/responses/UnauthorizedError"),
+        @ApiResponse(responseCode = "404", description = "User not found") 
+    })
     @GetMapping("/pol-wallet-status")
     public ResponseEntity<Boolean> getPolygonWalletStatus(@RequestAttribute(name = "X-User-Id", required = false) String userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -157,6 +219,11 @@ public class UserCont {
         return ResponseEntity.ok(status);
     }
 
+    @Operation(summary = "Get public Polygon wallet address")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
     @GetMapping("/public/pol-wallet-addres")
     public ResponseEntity<String> getPublicPolygonWalletAddress(@RequestParam String clerkId) {
         String walletAddress = userServ.getPublicPolygonWalletAddress(clerkId);
